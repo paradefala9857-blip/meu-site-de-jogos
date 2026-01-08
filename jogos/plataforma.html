@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Plataforma</title>
+<style>
+body { margin:0; background:#5c94fc; overflow:hidden; }
+canvas { display:block; margin:auto; background:#5c94fc; }
+#ui {
+  position:fixed;
+  top:10px; left:10px;
+  color:white;
+  font-family:Arial;
+  font-size:18px;
+}
+#btn {
+  display:none;
+  position:fixed;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  font-size:24px;
+}
+</style>
+</head>
+<body>
+
+<div id="ui">Chaves: <span id="keys">0</span>/3</div>
+<button id="btn" onclick="location.reload()">RECOMEÇAR</button>
+
+<canvas id="game" width="800" height="400"></canvas>
+
+<audio id="music" loop>
+  <source src="https://cdn.pixabay.com/audio/2022/03/15/audio_0d16d3b7b6.mp3">
+</audio>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// música começa ao clicar
+document.body.onclick = () => document.getElementById("music").play();
+
+let keysPressed = {};
+addEventListener("keydown",e=>keysPressed[e.key.toLowerCase()]=true);
+addEventListener("keyup",e=>keysPressed[e.key.toLowerCase()]=false);
+
+let player = {
+  x:50,y:300,w:30,h:30,
+  vx:0,vy:0,
+  onGround:false
+};
+
+let gravity = 0.6;
+let gameOver = false;
+let collectedKeys = 0;
+
+// plataformas
+let platforms = [
+  {x:0,y:350,w:800,h:50},
+  {x:150,y:280,w:100,h:20},
+  {x:300,y:240,w:100,h:20},
+  {x:450,y:200,w:100,h:20},
+  {x:600,y:260,w:100,h:20}
+];
+
+// lava
+let lava = {x:0,y:380,w:800,h:20};
+
+// inimigos
+let enemies = [
+  {x:200,y:320,w:30,h:30,v:1},
+  {x:500,y:170,w:30,h:30,v:-1}
+];
+
+// chaves
+let keys = [
+  {x:160,y:250,ok:true},
+  {x:460,y:170,ok:true},
+  {x:650,y:230,ok:true}
+];
+
+// botão final
+let exitButton = {x:750,y:320,w:30,h:30};
+
+function hit(a,b){
+  return a.x < b.x + b.w &&
+         a.x + a.w > b.x &&
+         a.y < b.y + b.h &&
+         a.y + a.h > b.y;
+}
+
+function endGame(){
+  gameOver = true;
+  document.getElementById("btn").style.display = "block";
+}
+
+function update(){
+  if(gameOver) return;
+
+  player.vx = 0;
+  if(keysPressed["a"]) player.vx = -4;
+  if(keysPressed["d"]) player.vx = 4;
+
+  if(keysPressed[" "] && player.onGround){
+    player.vy = -12;
+    player.onGround = false;
+  }
+
+  player.vy += gravity;
+  player.x += player.vx;
+  player.y += player.vy;
+  player.onGround = false;
+
+  platforms.forEach(p=>{
+    if(hit(player,p) && player.vy > 0){
+      player.y = p.y - player.h;
+      player.vy = 0;
+      player.onGround = true;
+    }
+  });
+
+  if(hit(player,lava)) endGame();
+
+  enemies.forEach(e=>{
+    e.x += e.v;
+    if(e.x < 0 || e.x > 770) e.v *= -1;
+    if(hit(player,e)) endGame();
+  });
+
+  keys.forEach(k=>{
+    if(k.ok && hit(player,{x:k.x,y:k.y,w:20,h:20})){
+      k.ok = false;
+      collectedKeys++;
+      document.getElementById("keys").innerText = collectedKeys;
+    }
+  });
+
+  if(collectedKeys >= 3 && hit(player,exitButton)){
+    endGame();
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,800,400);
+
+  ctx.fillStyle="red";
+  ctx.fillRect(player.x,player.y,player.w,player.h);
+
+  ctx.fillStyle="green";
+  platforms.forEach(p=>ctx.fillRect(p.x,p.y,p.w,p.h));
+
+  ctx.fillStyle="orange";
+  ctx.fillRect(lava.x,lava.y,lava.w,lava.h);
+
+  ctx.fillStyle="purple";
+  enemies.forEach(e=>ctx.fillRect(e.x,e.y,e.w,e.h));
+
+  ctx.fillStyle="gold";
+  keys.forEach(k=>{
+    if(k.ok) ctx.fillRect(k.x,k.y,15,15);
+  });
+
+  ctx.fillStyle="blue";
+  ctx.fillRect(exitButton.x,exitButton.y,exitButton.w,exitButton.h);
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

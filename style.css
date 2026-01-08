@@ -1,0 +1,31 @@
+body {
+  background:#0f172a;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
+
+.games {
+  display:flex;
+  justify-content:center;
+  gap:40px;
+  margin-top:40px;
+}
+
+.game {
+  background:#1e293b;
+  padding:20px;
+  border-radius:10px;
+  width:220px;
+}
+
+.game a {
+  display:block;
+  margin-top:15px;
+  padding:12px;
+  background:#22c55e;
+  color:black;
+  text-decoration:none;
+  font-weight:bold;
+  border-radius:6px;
+}

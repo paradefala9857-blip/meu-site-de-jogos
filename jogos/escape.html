@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Escape do Monstro</title>
+<style>
+  body { background: black; color: white; text-align: center; }
+  canvas { background: #111; display: block; margin: auto; }
+</style>
+</head>
+<body>
+
+<h1>Escape do Monstro</h1>
+<p>Use WASD ou Setas | Pegue 3 chaves e vá para a porta</p>
+
+<canvas id="game" width="600" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = { x: 50, y: 50, size: 20, speed: 4 };
+let monster = { x: 500, y: 300, size: 20, speed: 1.5 };
+let keys = [];
+let collected = 0;
+let door = { x: 550, y: 50, size: 30 };
+let gameOver = false;
+let win = false;
+
+// cria 3 chaves
+for (let i = 0; i < 3; i++) {
+  keys.push({
+    x: Math.random() * 550,
+    y: Math.random() * 350,
+    size: 15,
+    taken: false
+  });
+}
+
+const keysPressed = {};
+document.addEventListener("keydown", e => keysPressed[e.key] = true);
+document.addEventListener("keyup", e => keysPressed[e.key] = false);
+
+function movePlayer() {
+  if (keysPressed["ArrowUp"] || keysPressed["w"]) player.y -= player.speed;
+  if (keysPressed["ArrowDown"] || keysPressed["s"]) player.y += player.speed;
+  if (keysPressed["ArrowLeft"] || keysPressed["a"]) player.x -= player.speed;
+  if (keysPressed["ArrowRight"] || keysPressed["d"]) player.x += player.speed;
+}
+
+function moveMonster() {
+  if (monster.x < player.x) monster.x += monster.speed;
+  if (monster.x > player.x) monster.x -= monster.speed;
+  if (monster.y < player.y) monster.y += monster.speed;
+  if (monster.y > player.y) monster.y -= monster.speed;
+}
+
+function checkCollision(a, b) {
+  return a.x < b.x + b.size &&
+         a.x + a.size > b.x &&
+         a.y < b.y + b.size &&
+         a.y + a.size > b.y;
+}
+
+function update() {
+  if (gameOver || win) return;
+
+  movePlayer();
+  moveMonster();
+
+  // colisão com monstro
+  if (checkCollision(player, monster)) {
+    gameOver = true;
+  }
+
+  // coletar chaves
+  keys.forEach(k => {
+    if (!k.taken && checkCollision(player, k)) {
+      k.taken = true;
+      collected++;
+    }
+  });
+
+  // vencer
+  if (collected === 3 && checkCollision(player, door)) {
+    win = true;
+  }
+}
+
+function draw() {
+  ctx.clearRect(0,0,600,400);
+
+  // jogador
+  ctx.fillStyle = "blue";
+  ctx.fillRect(player.x, player.y, player.size, player.size);
+
+  // monstro
+  ctx.fillStyle = "red";
+  ctx.fillRect(monster.x, monster.y, monster.size, monster.size);
+
+  // chaves
+  ctx.fillStyle = "yellow";
+  keys.forEach(k => {
+    if (!k.taken)
+      ctx.fillRect(k.x, k.y, k.size, k.size);
+  });
+
+  // porta
+  ctx.fillStyle = collected === 3 ? "green" : "gray";
+  ctx.fillRect(door.x, door.y, door.size, door.size);
+
+  ctx.fillStyle = "white";
+  ctx.fillText("Chaves: " + collected + "/3", 10, 15);
+
+  if (gameOver) {
+    ctx.fillText("GAME OVER", 260, 200);
+  }
+
+  if (win) {
+    ctx.fillText("VOCÊ ESCAPOU!", 250, 200);
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
