@@ -5,6 +5,91 @@
 <title>Minha Plataforma de Jogos</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="style.css">
+<style>
+/* Estilo básico dos jogos */
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background-color: #222;
+  color: #fff;
+  padding: 20px;
+}
+
+.games {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.game {
+  background-color: #444;
+  padding: 20px;
+  border-radius: 10px;
+  width: 180px;
+}
+
+.game a {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #ff5722;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 5px;
+}
+
+.game a:hover {
+  background-color: #e64a19;
+}
+
+/* Joystick para celular */
+#joystick-container {
+  position: fixed;
+  bottom: 30px;
+  left: 30px;
+  width: 100px;
+  height: 100px;
+  touch-action: none;
+  z-index: 1000;
+}
+
+#joystick-base {
+  width: 100%;
+  height: 100%;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  position: relative;
+}
+
+#joystick-stick {
+  width: 50%;
+  height: 50%;
+  background: rgba(255,255,255,0.6);
+  border-radius: 50%;
+  position: absolute;
+  top: 25%;
+  left: 25%;
+  touch-action: none;
+}
+
+/* Responsivo para celular */
+@media (max-width: 600px) {
+  .games {
+    flex-direction: column;
+    gap: 15px;
+  }
+  .game {
+    width: 80%;
+    margin: 0 auto;
+  }
+  .game a {
+    font-size: 18px;
+    padding: 12px 0;
+  }
+}
+</style>
 </head>
 <body>
 
@@ -12,7 +97,6 @@
 <p>Clique em um jogo para jogar</p>
 
 <div class="games">
-
   <div class="game">
     <h2>🧟 Escape do Monstro</h2>
     <a href="jogos/escape.html">JOGAR</a>
@@ -27,27 +111,53 @@
     <h2>✈️ Jogo de Avião</h2>
     <a href="jogos/aviao.html">JOGAR</a>
   </div>
-
 </div>
+
+<!-- Controle analógico -->
+<div id="joystick-container">
+  <div id="joystick-base">
+    <div id="joystick-stick"></div>
+  </div>
+</div>
+
+<script>
+const stick = document.getElementById('joystick-stick');
+const base = document.getElementById('joystick-base');
+
+let dragging = false;
+let startX = 0;
+let startY = 0;
+
+stick.addEventListener('touchstart', function(e) {
+  dragging = true;
+  const touch = e.touches[0];
+  startX = touch.clientX;
+  startY = touch.clientY;
+});
+
+stick.addEventListener('touchmove', function(e) {
+  if (!dragging) return;
+  const touch = e.touches[0];
+  const dx = touch.clientX - startX;
+  const dy = touch.clientY - startY;
+
+  const maxDistance = base.clientWidth / 2;
+  let distance = Math.sqrt(dx*dx + dy*dy);
+  if (distance > maxDistance) {
+    const angle = Math.atan2(dy, dx);
+    stick.style.transform = `translate(${Math.cos(angle)*maxDistance}px, ${Math.sin(angle)*maxDistance}px)`;
+  } else {
+    stick.style.transform = `translate(${dx}px, ${dy}px)`;
+  }
+
+  // dx e dy podem ser usados para mover o personagem nos jogos
+});
+
+stick.addEventListener('touchend', function() {
+  dragging = false;
+  stick.style.transform = `translate(0px, 0px)`;
+});
+</script>
 
 </body>
 </html>
-/* Para telas pequenas (celular) */
-@media (max-width: 600px) {
-  body {
-    font-size: 16px;
-    padding: 10px;
-  }
-
-  .games {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-
-  .game a {
-    font-size: 18px;
-    padding: 10px;
-  }
-}
-

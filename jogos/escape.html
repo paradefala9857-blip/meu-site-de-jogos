@@ -1,132 +1,204 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Escape do Monstro</title>
+<title>Escape do Monstro 2D - PC + Celular</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { background: black; color: white; text-align: center; }
-  canvas { background: #111; display: block; margin: auto; }
+body { margin: 0; background: #111; overflow: hidden; }
+canvas { display: block; margin: 0 auto; background: #222; }
+
+/* Botão de recomeçar */
+#recomecar {
+  position: absolute; top: 10px; right: 10px;
+  padding: 10px 15px; background: #ff5722;
+  border: none; color: #fff; font-size: 16px;
+  border-radius: 5px; cursor: pointer; z-index: 1000;
+}
+
+/* Joystick */
+#joystick-container {
+  position: fixed; bottom: 30px; left: 30px;
+  width: 100px; height: 100px; touch-action: none; z-index: 1000;
+}
+#joystick-base {
+  width: 100%; height: 100%;
+  background: rgba(255,255,255,0.2); border-radius: 50%; position: relative;
+}
+#joystick-stick {
+  width: 50%; height: 50%; background: rgba(255,255,255,0.6);
+  border-radius: 50%; position: absolute; top:25%; left:25%; touch-action:none;
+}
 </style>
 </head>
 <body>
 
-<h1>Escape do Monstro</h1>
-<p>Use WASD ou Setas | Pegue 3 chaves e vá para a porta</p>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<button id="recomecar">Recomeçar</button>
 
-<canvas id="game" width="600" height="400"></canvas>
+<div id="joystick-container">
+  <div id="joystick-base">
+    <div id="joystick-stick"></div>
+  </div>
+</div>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const tileSize = 50;
 
-let player = { x: 50, y: 50, size: 20, speed: 4 };
-let monster = { x: 500, y: 300, size: 20, speed: 1.5 };
-let keys = [];
-let collected = 0;
-let door = { x: 550, y: 50, size: 30 };
-let gameOver = false;
-let win = false;
+// mapa (1=parede, 0=chão)
+const map = [
+[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+[1,0,1,0,1,0,1,0,1,0,1,0,0,0,0,1],
+[1,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1],
+[1,0,1,0,1,0,1,0,1,0,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1],
+[1,0,1,0,1,0,1,0,0,0,0,0,0,0,0,1],
+[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
 
-// cria 3 chaves
-for (let i = 0; i < 3; i++) {
-  keys.push({
-    x: Math.random() * 550,
-    y: Math.random() * 350,
-    size: 15,
-    taken: false
-  });
+let player = {x: tileSize+5, y: tileSize+5, w:30, h:30, speed:3};
+let keys = {w:false,a:false,s:false,d:false};
+let chaves = [], numChaves=3;
+let porta = {x:14*tileSize, y:7*tileSize, w:40, h:40};
+let monstro = {x:700, y:500, w:40, h:40, speed:2};
+
+// joystick
+const stick = document.getElementById('joystick-stick');
+const base = document.getElementById('joystick-base');
+let dragging=false, startX=0, startY=0, joyX=0, joyY=0;
+
+function spawnChaves(){
+  chaves=[];
+  while(chaves.length<numChaves){
+    let i=Math.floor(Math.random()*map.length);
+    let j=Math.floor(Math.random()*map[0].length);
+    if(map[i][j]===0) chaves.push({x:j*tileSize+10,y:i*tileSize+10,w:30,h:30});
+  }
 }
+spawnChaves();
 
-const keysPressed = {};
-document.addEventListener("keydown", e => keysPressed[e.key] = true);
-document.addEventListener("keyup", e => keysPressed[e.key] = false);
+document.getElementById('recomecar').addEventListener('click', ()=>{
+  player.x=tileSize+5; player.y=tileSize+5;
+  monstro.x=700; monstro.y=500;
+  spawnChaves();
+});
 
-function movePlayer() {
-  if (keysPressed["ArrowUp"] || keysPressed["w"]) player.y -= player.speed;
-  if (keysPressed["ArrowDown"] || keysPressed["s"]) player.y += player.speed;
-  if (keysPressed["ArrowLeft"] || keysPressed["a"]) player.x -= player.speed;
-  if (keysPressed["ArrowRight"] || keysPressed["d"]) player.x += player.speed;
-}
+// teclado
+window.addEventListener('keydown', e=>{
+  if(e.key==='w') keys.w=true;
+  if(e.key==='a') keys.a=true;
+  if(e.key==='s') keys.s=true;
+  if(e.key==='d') keys.d=true;
+});
+window.addEventListener('keyup', e=>{
+  if(e.key==='w') keys.w=false;
+  if(e.key==='a') keys.a=false;
+  if(e.key==='s') keys.s=false;
+  if(e.key==='d') keys.d=false;
+});
 
-function moveMonster() {
-  if (monster.x < player.x) monster.x += monster.speed;
-  if (monster.x > player.x) monster.x -= monster.speed;
-  if (monster.y < player.y) monster.y += monster.speed;
-  if (monster.y > player.y) monster.y -= monster.speed;
-}
+// joystick touch
+stick.addEventListener('touchstart', e=>{
+  dragging=true; const t=e.touches[0]; startX=t.clientX; startY=t.clientY;
+});
+stick.addEventListener('touchmove', e=>{
+  if(!dragging) return;
+  const t = e.touches[0];
+  const dx = t.clientX - startX;
+  const dy = t.clientY - startY;
+  const max = base.clientWidth/2;
+  let dist=Math.sqrt(dx*dx + dy*dy);
+  if(dist>max){
+    const angle=Math.atan2(dy,dx);
+    joyX = Math.cos(angle);
+    joyY = Math.sin(angle);
+    stick.style.transform = `translate(${Math.cos(angle)*max}px,${Math.sin(angle)*max}px)`;
+  } else {
+    joyX = dx/max; joyY = dy/max;
+    stick.style.transform = `translate(${dx}px,${dy}px)`;
+  }
+});
+stick.addEventListener('touchend', e=>{dragging=false; joyX=0; joyY=0; stick.style.transform='translate(0px,0px)';});
 
-function checkCollision(a, b) {
-  return a.x < b.x + b.size &&
-         a.x + a.size > b.x &&
-         a.y < b.y + b.size &&
-         a.y + a.size > b.y;
-}
+// colisão com parede
+function colide(x,y){ let i=Math.floor(y/tileSize); let j=Math.floor(x/tileSize); return map[i][j]===1; }
 
-function update() {
-  if (gameOver || win) return;
+function update(){
+  // movimento jogador (teclado + joystick)
+  let dx=0, dy=0;
+  if(keys.w) dy -= player.speed;
+  if(keys.s) dy += player.speed;
+  if(keys.a) dx -= player.speed;
+  if(keys.d) dx += player.speed;
 
-  movePlayer();
-  moveMonster();
+  dx += joyX*player.speed;
+  dy += joyY*player.speed;
 
-  // colisão com monstro
-  if (checkCollision(player, monster)) {
-    gameOver = true;
+  if(!colide(player.x+dx,player.y)) player.x += dx;
+  if(!colide(player.x,player.y+dy)) player.y += dy;
+
+  // movimento monstro
+  let mx = player.x - monstro.x;
+  let my = player.y - monstro.y;
+  let dist = Math.sqrt(mx*mx + my*my);
+  if(dist>0){ monstro.x += (mx/dist)*monstro.speed; monstro.y += (my/dist)*monstro.speed; }
+
+  // colisão monstro com jogador
+  if(player.x<monstro.x+monstro.w && player.x+player.w>monstro.x &&
+     player.y<monstro.y+monstro.h && player.y+player.h>monstro.y){
+       alert('Você foi pego pelo monstro!');
+       document.getElementById('recomecar').click();
   }
 
   // coletar chaves
-  keys.forEach(k => {
-    if (!k.taken && checkCollision(player, k)) {
-      k.taken = true;
-      collected++;
-    }
+  chaves=chaves.filter(c=>{
+    if(player.x<c.x+c.w && player.x+player.w>c.x &&
+       player.y<c.y+c.h && player.y+player.h>c.y) return false;
+    return true;
   });
 
-  // vencer
-  if (collected === 3 && checkCollision(player, door)) {
-    win = true;
+  // checar porta
+  if(chaves.length===0 && player.x<porta.x+porta.w && player.x+player.w>porta.x &&
+     player.y<porta.y+porta.h && player.y+player.h>porta.y){
+       alert('Você escapou!');
+       document.getElementById('recomecar').click();
   }
 }
 
-function draw() {
-  ctx.clearRect(0,0,600,400);
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // jogador
-  ctx.fillStyle = "blue";
-  ctx.fillRect(player.x, player.y, player.size, player.size);
-
-  // monstro
-  ctx.fillStyle = "red";
-  ctx.fillRect(monster.x, monster.y, monster.size, monster.size);
+  // mapa
+  for(let i=0;i<map.length;i++){
+    for(let j=0;j<map[0].length;j++){
+      ctx.fillStyle = map[i][j]===1?'#555':'#222';
+      ctx.fillRect(j*tileSize,i*tileSize,tileSize,tileSize);
+    }
+  }
 
   // chaves
-  ctx.fillStyle = "yellow";
-  keys.forEach(k => {
-    if (!k.taken)
-      ctx.fillRect(k.x, k.y, k.size, k.size);
-  });
+  ctx.fillStyle='yellow';
+  chaves.forEach(c=>ctx.fillRect(c.x,c.y,c.w,c.h));
 
   // porta
-  ctx.fillStyle = collected === 3 ? "green" : "gray";
-  ctx.fillRect(door.x, door.y, door.size, door.size);
+  ctx.fillStyle='green';
+  ctx.fillRect(porta.x,porta.y,porta.w,porta.h);
 
-  ctx.fillStyle = "white";
-  ctx.fillText("Chaves: " + collected + "/3", 10, 15);
+  // jogador
+  ctx.fillStyle='red';
+  ctx.fillRect(player.x,player.y,player.w,player.h);
 
-  if (gameOver) {
-    ctx.fillText("GAME OVER", 260, 200);
-  }
-
-  if (win) {
-    ctx.fillText("VOCÊ ESCAPOU!", 250, 200);
-  }
+  // monstro
+  ctx.fillStyle='purple';
+  ctx.fillRect(monstro.x,monstro.y,monstro.w,monstro.h);
 }
 
-function loop() {
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-
+function loop(){ update(); draw(); requestAnimationFrame(loop); }
 loop();
 </script>
 

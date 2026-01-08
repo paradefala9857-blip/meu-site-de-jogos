@@ -173,3 +173,61 @@ loop();
 </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Plataforma</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../style.css">
+<style>
+#joystick-container {position: fixed; bottom:30px; left:30px; width:100px; height:100px; touch-action:none; z-index:1000;}
+#joystick-base {width:100%; height:100%; background: rgba(255,255,255,0.2); border-radius:50%; position: relative;}
+#joystick-stick {width:50%; height:50%; background: rgba(255,255,255,0.6); border-radius:50%; position:absolute; top:25%; left:25%; touch-action:none;}
+</style>
+</head>
+<body>
+
+<!-- SEU JOGO DE PLATAFORMA AQUI -->
+
+<!-- Joystick -->
+<div id="joystick-container">
+  <div id="joystick-base">
+    <div id="joystick-stick"></div>
+  </div>
+</div>
+
+<script>
+const stick = document.getElementById('joystick-stick');
+const base = document.getElementById('joystick-base');
+let dragging = false;
+let startX = 0;
+let startY = 0;
+stick.addEventListener('touchstart', function(e) {
+  dragging = true;
+  const touch = e.touches[0];
+  startX = touch.clientX;
+  startY = touch.clientY;
+});
+stick.addEventListener('touchmove', function(e) {
+  if (!dragging) return;
+  const touch = e.touches[0];
+  const dx = touch.clientX - startX;
+  const dy = touch.clientY - startY;
+  const maxDistance = base.clientWidth / 2;
+  let distance = Math.sqrt(dx*dx + dy*dy);
+  if(distance > maxDistance){
+    const angle = Math.atan2(dy, dx);
+    stick.style.transform = `translate(${Math.cos(angle)*maxDistance}px, ${Math.sin(angle)*maxDistance}px)`;
+  } else {
+    stick.style.transform = `translate(${dx}px, ${dy}px)`;
+  }
+});
+stick.addEventListener('touchend', function() {
+  dragging = false;
+  stick.style.transform = `translate(0px,0px)`;
+});
+</script>
+
+</body>
+</html>
